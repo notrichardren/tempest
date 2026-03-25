@@ -4,7 +4,7 @@
  * Reads ~/.claude/projects/ and serves the same endpoints as the Tauri backend.
  * No Rust required. Serves the built frontend from dist/.
  *
- * Usage: node api-server.mjs [--port 7890] [--host 0.0.0.0]
+ * Usage: node api-server.mjs [--port 4523] [--host 0.0.0.0]
  */
 
 import { createServer } from "http";
@@ -20,7 +20,7 @@ const DIST_DIR = resolve(import.meta.dirname, "dist");
 const cliArgs = process.argv.slice(2);
 const portIdx = cliArgs.indexOf("--port");
 const hostIdx = cliArgs.indexOf("--host");
-const PORT = portIdx >= 0 ? parseInt(cliArgs[portIdx + 1], 10) : 7890;
+const PORT = portIdx >= 0 ? parseInt(cliArgs[portIdx + 1], 10) : 4523;
 const HOST = hostIdx >= 0 ? cliArgs[hostIdx + 1] : "0.0.0.0";
 
 // ── Helpers ──
