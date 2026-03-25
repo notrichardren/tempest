@@ -43,7 +43,7 @@ import {
 } from "@/types";
 import type { UseAnalyticsReturn } from "@/types/analytics";
 import type { UseUpdaterReturn } from "@/hooks/useUpdater";
-import type { SearchState, SearchFilterType } from "@/store/slices/types";
+import type { SearchState } from "@/store/slices/types";
 import type { WorktreeGroup, DirectoryGroup } from "@/utils/worktreeUtils";
 import type { ProjectTokenStatsPagination } from "@/store/slices/messageSlice";
 
@@ -121,7 +121,6 @@ export interface AppLayoutProps {
   isProjectHidden: (projectPath: string) => boolean;
   setDateFilter: (filter: { start: Date | null; end: Date | null }) => void;
   setSessionSearchQuery: (query: string) => void;
-  setSearchFilterType: (type: SearchFilterType) => void;
   clearSessionSearch: () => void;
   goToNextMatch: () => void;
   goToPrevMatch: () => void;
@@ -192,7 +191,6 @@ export const AppLayout: React.FC<AppLayoutProps> = (props) => {
     isProjectHidden,
     setDateFilter,
     setSessionSearchQuery,
-    setSearchFilterType,
     clearSessionSearch,
     goToNextMatch,
     goToPrevMatch,
@@ -567,7 +565,6 @@ export const AppLayout: React.FC<AppLayoutProps> = (props) => {
                       selectedSession={selectedSession}
                       sessionSearch={sessionSearch}
                       onSearchChange={setSessionSearchQuery}
-                      onFilterTypeChange={setSearchFilterType}
                       onClearSearch={clearSessionSearch}
                       onNextMatch={goToNextMatch}
                       onPrevMatch={goToPrevMatch}

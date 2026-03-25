@@ -12,9 +12,6 @@
 import {
   isTauri,
   getApiBase,
-  getAuthToken,
-  setAuthToken,
-  clearAuthToken,
 } from "@/utils/platform";
 
 /** Validate command name to prevent path traversal in URL. */
@@ -25,13 +22,11 @@ const COMMAND_RE = /^[a-zA-Z0-9_]+$/;
  *
  * @param command  Tauri command name (also used as the REST endpoint name)
  * @param args     Optional arguments object (serialised as JSON body in web mode)
- * @param _retried Internal flag to prevent infinite retry on 401
  * @returns        The deserialised response from the backend
  */
 export async function api<T>(
   command: string,
   args?: Record<string, unknown>,
-  _retried = false,
 ): Promise<T> {
   if (isTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -44,42 +39,12 @@ export async function api<T>(
 
   const base = getApiBase();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token = getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${base}/api/${command}`, {
     method: "POST",
     headers,
     body: JSON.stringify(args ?? {}),
   });
-
-  // On 401, try to extract token from URL params and retry once.
-  // If no token is available, redirect to force re-authentication.
-  if (response.status === 401 && !_retried) {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get("token");
-    if (urlToken) {
-      setAuthToken(urlToken);
-      return api<T>(command, args, true);
-    }
-
-    // Avoid redirect loops when already on an auth error page.
-    if (params.get("auth_error") === "1") {
-      clearAuthToken();
-      throw new Error("Authentication required. Open the app with a valid token.");
-    }
-
-    // Clear stale token and redirect once to an explicit auth-error URL.
-    clearAuthToken();
-    params.set("auth_error", "1");
-    const query = params.toString();
-    window.location.replace(
-      query ? `${window.location.pathname}?${query}` : window.location.pathname,
-    );
-    throw new Error("Authentication required");
-  }
 
   if (!response.ok) {
     const errorBody = await response.text();

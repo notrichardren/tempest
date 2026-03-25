@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-import { Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { NavigatorEntryData } from "./types";
@@ -74,9 +73,6 @@ export const NavigatorEntry = React.memo<NavigatorEntryProps>(({
         <span className="text-2xs font-medium text-muted-foreground">
           #{entry.turnIndex}
         </span>
-        {entry.hasToolUse && (
-          <Wrench className="w-2.5 h-2.5 text-muted-foreground/60" />
-        )}
         <span className="ml-auto text-2xs text-muted-foreground/60">
           {formattedTime}
         </span>

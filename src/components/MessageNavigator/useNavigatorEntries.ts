@@ -1,11 +1,18 @@
 import { useMemo } from "react";
 import type { ClaudeMessage } from "../../types";
 import type { NavigatorEntryData } from "./types";
-import { extractClaudeMessageContent, getToolUseBlock } from "../../utils/messageUtils";
-import { isEmptyMessage } from "../MessageViewer/helpers/messageHelpers";
+import { extractClaudeMessageContent } from "../../utils/messageUtils";
 
-/** Types to filter out as noise in the navigator */
-const NOISE_TYPES = new Set(["progress", "queue-operation", "file-history-snapshot"]);
+/** Content block types that are NOT user-visible text */
+const NON_TEXT_TYPES = new Set([
+  "tool_use",
+  "tool_result",
+  "thinking",
+  "redacted_thinking",
+  "server_tool_use",
+  "mcp_tool_use",
+  "mcp_tool_result",
+]);
 
 /** Strip XML tags from content for clean preview */
 function stripXmlTags(text: string): string {
@@ -28,6 +35,25 @@ function truncatePreview(text: string, maxLength = 100): string {
   return truncated + "…";
 }
 
+/**
+ * Check whether an assistant message carries at least one user-visible
+ * text block (i.e. not just tool_use / thinking).
+ */
+function assistantHasTextContent(message: ClaudeMessage): boolean {
+  const { content } = message;
+  if (typeof content === "string" && content.trim().length > 0) return true;
+  if (Array.isArray(content)) {
+    return content.some(
+      (block) =>
+        typeof block === "object" &&
+        block !== null &&
+        "type" in block &&
+        !NON_TEXT_TYPES.has(block.type as string)
+    );
+  }
+  return false;
+}
+
 export function useNavigatorEntries(messages: ClaudeMessage[]): NavigatorEntryData[] {
   return useMemo(() => {
     if (!messages || messages.length === 0) return [];
@@ -36,24 +62,38 @@ export function useNavigatorEntries(messages: ClaudeMessage[]): NavigatorEntryDa
     let turnIndex = 0;
 
     for (const message of messages) {
-      // Filter out noise types
-      if (NOISE_TYPES.has(message.type)) continue;
-
-      // Filter out empty messages
-      if (isEmptyMessage(message)) continue;
+      // Only show user messages and assistant messages with text content
+      if (message.type === "user") {
+        // User messages with only tool_result content (no visible text) are noise
+        if (Array.isArray(message.content)) {
+          const hasVisibleContent = message.content.some(
+            (block) =>
+              typeof block === "object" &&
+              block !== null &&
+              "type" in block &&
+              block.type === "text"
+          );
+          if (!hasVisibleContent) continue;
+        }
+      } else if (message.type === "assistant") {
+        // Skip assistant messages that have no text content (tool-only or thinking-only)
+        if (!assistantHasTextContent(message)) continue;
+      } else if (message.type === "summary") {
+        // Summary messages are kept as turn markers
+      } else {
+        // Skip system, progress, queue-operation, file-history-snapshot, and all other types
+        continue;
+      }
 
       // Extract preview text
       const rawContent = extractClaudeMessageContent(message);
-      const toolUse = getToolUseBlock(message);
       let preview = "";
       if (rawContent) {
         preview = truncatePreview(stripXmlTags(rawContent));
-      } else if (toolUse) {
-        preview = toolUse.name || "Tool Use";
       }
 
       // Determine role
-      const role = (message.type === "user" || message.type === "assistant" || message.type === "system" || message.type === "summary")
+      const role = message.type === "user" || message.type === "assistant" || message.type === "summary"
         ? message.type
         : "system";
 
@@ -64,7 +104,7 @@ export function useNavigatorEntries(messages: ClaudeMessage[]): NavigatorEntryDa
         role,
         preview: preview || `(${role} message)`,
         timestamp: message.timestamp || "",
-        hasToolUse: toolUse !== null,
+        hasToolUse: false,
         turnIndex,
       });
     }

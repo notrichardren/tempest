@@ -19,7 +19,6 @@ export interface MessageViewerProps {
   selectedSession: ClaudeSession | null;
   sessionSearch: SearchState;
   onSearchChange: (query: string) => void;
-  onFilterTypeChange: (filterType: SearchFilterType) => void;
   onClearSearch: () => void;
   onNextMatch?: () => void;
   onPrevMatch?: () => void;

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Folder,
   Database,
+  Clock,
   List,
   FolderTree,
   GitBranch,
@@ -19,9 +20,11 @@ import { getLocale } from "../../utils/time";
 import { ProjectContextMenu } from "../ProjectContextMenu";
 import { useProjectTreeState } from "./hooks/useProjectTreeState";
 import { GroupedProjectList } from "./components/GroupedProjectList";
+import { SessionList } from "./components/SessionList";
 import type { ProjectTreeProps } from "./types";
 import type { ProviderId, ClaudeSession } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
+import { api } from "../../services/api";
 import {
   buildTreeItemAnnouncement,
   findTypeaheadMatchIndex,
@@ -84,6 +87,31 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
     handleContextMenu,
     closeContextMenu,
   } = useProjectTreeState(groupingMode);
+
+  // Recent sessions state
+  const [isViewingRecent, setIsViewingRecent] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<ClaudeSession[]>([]);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(false);
+
+  const handleRecentClick = useCallback(async () => {
+    if (isViewingRecent) {
+      // Toggle off — return to normal view
+      setIsViewingRecent(false);
+      setRecentSessions([]);
+      return;
+    }
+    setIsViewingRecent(true);
+    setIsLoadingRecent(true);
+    try {
+      const sessions = await api<ClaudeSession[]>("load_all_recent_sessions");
+      setRecentSessions(sessions);
+    } catch (error) {
+      console.error("Failed to load recent sessions:", error);
+      toast.error(t("common.error", "Failed to load recent sessions"));
+    } finally {
+      setIsLoadingRecent(false);
+    }
+  }, [isViewingRecent, t]);
 
   // Wrap session select to also close mobile drawer
   const handleSessionSelect = useCallback(
@@ -628,6 +656,19 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
             <Database className="w-4 h-4" />
           </button>
 
+          {/* Recent Sessions Icon */}
+          <button
+            onClick={() => { void handleRecentClick(); }}
+            className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+              isViewingRecent ? "bg-amber-500/20 text-amber-500" : "text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500"
+            )}
+            aria-label="Recent"
+            title="Recent"
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+
           <div className="w-6 h-px bg-accent/20" />
 
           {/* Projects Count */}
@@ -872,11 +913,72 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
                 </div>
               </button>
 
+              {/* Recent Sessions Button */}
+              <button
+                onClick={() => { void handleRecentClick(); }}
+                role="treeitem"
+                data-tree-node="recent"
+                aria-level={1}
+                aria-selected={isViewingRecent}
+                tabIndex={-1}
+                className={cn(
+                  "sidebar-item w-full flex items-center gap-3 mx-2 group",
+                  "text-left transition-all duration-300",
+                  isViewingRecent && "active"
+                )}
+                style={{ width: "calc(100% - 16px)" }}
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
+                    "bg-amber-500/10 text-amber-500",
+                    "group-hover:bg-amber-500/20 group-hover:shadow-sm group-hover:shadow-amber-500/20",
+                    isViewingRecent && "bg-amber-500/20 shadow-glow"
+                  )}
+                >
+                  <span title="Recent">
+                    <Clock className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-sidebar-foreground">
+                    Recent
+                  </div>
+                  <div className="text-2xs text-muted-foreground">
+                    All sessions by recency
+                  </div>
+                </div>
+              </button>
+
               {/* Divider */}
               <div className="my-2 mx-4 h-px bg-sidebar-border" />
 
+              {/* Recent Sessions List (when active) */}
+              {isViewingRecent && (
+                <div className="px-2 py-1">
+                  {isLoadingRecent ? (
+                    <div className="py-4 text-center text-xs text-muted-foreground">
+                      Loading recent sessions...
+                    </div>
+                  ) : recentSessions.length === 0 ? (
+                    <div className="py-4 text-center text-xs text-muted-foreground">
+                      No recent sessions found
+                    </div>
+                  ) : (
+                    <SessionList
+                      sessions={recentSessions}
+                      selectedSession={selectedSession}
+                      isLoading={false}
+                      onSessionSelect={handleSessionSelect}
+                      onSessionHover={onSessionHover}
+                      formatTimeAgo={formatTimeAgo}
+                    />
+                  )}
+                </div>
+              )}
+
               {/* Grouped Project List */}
-              <GroupedProjectList
+              {!isViewingRecent && <GroupedProjectList
                 groupingMode={groupingMode}
                 projects={filteredProjects}
                 directoryGroups={filteredDirectoryGroups}
@@ -895,7 +997,7 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
                 onSessionSelect={handleSessionSelect}
                 onSessionHover={onSessionHover}
                 formatTimeAgo={formatTimeAgo}
-              />
+              />}
             </div>
           )}
         </OverlayScrollbarsComponent>

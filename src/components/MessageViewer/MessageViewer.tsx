@@ -7,7 +7,7 @@
 
 import { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import { OverlayScrollbarsComponent, type OverlayScrollbarsComponentRef } from "overlayscrollbars-react";
-import { MessageCircle, ChevronDown, ChevronUp, Search, X, Camera, Download } from "lucide-react";
+import { MessageCircle, ChevronDown, ChevronUp, Search, X, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LoadingSpinner, LoadingState } from "@/components/ui/loading";
@@ -16,7 +16,6 @@ import { LoadingSpinner, LoadingState } from "@/components/ui/loading";
 import type { MessageViewerProps } from "./types";
 import { VirtualizedMessageRow } from "./components/VirtualizedMessageRow";
 import { FloatingDateOverlay } from "./components/FloatingDateOverlay";
-import { CaptureModeToolbar } from "./components/CaptureModeToolbar";
 import { FilterToolbar } from "./components/FilterToolbar";
 import { OffScreenCaptureRenderer } from "./components/OffScreenCaptureRenderer";
 import { ScreenshotPreviewModal } from "./components/ScreenshotPreviewModal";
@@ -24,7 +23,6 @@ import { useSearchState } from "./hooks/useSearchState";
 import { useScrollNavigation } from "./hooks/useScrollNavigation";
 import { useMessageVirtualization } from "./hooks/useMessageVirtualization";
 import { useCapturePreview } from "../../hooks/useCapturePreview";
-import { MAX_CAPTURE_MESSAGES } from "../../hooks/useCaptureScreenshot";
 import {
   groupAgentTasks,
   groupAgentProgressMessages,
@@ -48,7 +46,6 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
   selectedSession,
   sessionSearch,
   onSearchChange,
-  onFilterTypeChange,
   onClearSearch,
   onNextMatch,
   onPrevMatch,
@@ -66,13 +63,11 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
     isCaptureMode,
     hiddenMessageIds,
     selectedMessageIds,
-    enterCaptureMode,
     hideMessage,
     showMessage,
     restoreMessages,
     isCapturing,
     handleSelectionClick,
-    clearSelection,
     // Navigation state
     targetMessageUuid,
     shouldHighlightTarget,
@@ -139,11 +134,9 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
     previewDataUrl,
     previewWidth,
     previewHeight,
-    captureAndPreview,
     savePreview,
     discardPreview,
   } = useCapturePreview();
-  const { setIsCapturing } = useAppStore();
   const offScreenRef = useRef<HTMLDivElement>(null);
   const [captureToast, setCaptureToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -340,107 +333,7 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
     [handleSelectionClick, orderedMessageUuids],
   );
 
-  // Count selected visible messages (excluding hidden)
-  const selectedVisibleCount = useMemo(() => {
-    const hiddenSet = new Set(hiddenMessageIds);
-    let count = 0;
-    for (const uuid of selectedMessageIds) {
-      if (!hiddenSet.has(uuid)) count++;
-    }
-    return count;
-  }, [selectedMessageIds, hiddenMessageIds]);
-
   const hasSelection = selectedMessageIds.length > 0;
-
-  const waitForCaptureAssets = useCallback(async (root: HTMLElement) => {
-    const CAPTURE_ASSET_TIMEOUT_MS = 3000;
-    const images = Array.from(root.querySelectorAll("img"));
-
-    const imagePromises = images.map((img) => new Promise<void>((resolve) => {
-      if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
-        resolve();
-        return;
-      }
-
-      const done = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-
-      img.addEventListener("load", done, { once: true });
-      img.addEventListener("error", done, { once: true });
-
-      // Never block capture indefinitely for broken/slow resources.
-      const timer = setTimeout(() => {
-        img.removeEventListener("load", done);
-        img.removeEventListener("error", done);
-        resolve();
-      }, CAPTURE_ASSET_TIMEOUT_MS);
-    }));
-
-    const fontsPromise =
-      "fonts" in document
-        ? Promise.race([
-            document.fonts?.ready ?? Promise.resolve(),
-            new Promise<void>((resolve) => setTimeout(resolve, CAPTURE_ASSET_TIMEOUT_MS)),
-          ])
-        : Promise.resolve();
-
-    await Promise.all([...imagePromises, fontsPromise]);
-  }, []);
-
-  // Screenshot handler — capture to preview modal
-  const handleScreenshot = useCallback(async () => {
-    if (!hasSelection || selectedVisibleCount === 0) {
-      setCaptureToast({
-        type: "error",
-        message: t("captureMode.selectMessages"),
-      });
-      return;
-    }
-    if (selectedVisibleCount > MAX_CAPTURE_MESSAGES) {
-      setCaptureToast({
-        type: "error",
-        message: t("captureMode.tooManyMessages", { max: MAX_CAPTURE_MESSAGES }),
-      });
-      return;
-    }
-
-    // 1. Mount the capture renderer
-    setIsCapturing(true);
-    try {
-      // 2. Wait for React to render + browser to lay out the content
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-
-      // 3. Capture the rendered element → open preview (no file save yet)
-      const el = offScreenRef.current;
-      if (!el) {
-        setCaptureToast({ type: "error", message: t("captureMode.captureError") });
-        return;
-      }
-
-      await waitForCaptureAssets(el);
-
-      const result = await captureAndPreview(el, selectedSession?.session_id);
-      if (!result.success && result.message) {
-        setCaptureToast({ type: "error", message: result.message });
-      }
-    } catch {
-      setCaptureToast({ type: "error", message: t("captureMode.captureError") });
-    } finally {
-      setIsCapturing(false);
-    }
-  }, [
-    hasSelection,
-    selectedVisibleCount,
-    captureAndPreview,
-    setIsCapturing,
-    selectedSession?.session_id,
-    t,
-    waitForCaptureAssets,
-  ]);
 
   // Save from preview modal
   const handlePreviewSave = useCallback(async () => {
@@ -599,36 +492,6 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
           </button>
         )}
 
-        {/* Filter Toggle - Segmented control style */}
-        <div className="shrink-0 flex items-center bg-zinc-800/60 rounded-lg p-0.5 border border-zinc-700/40 order-2 lg:order-none">
-          <button
-            type="button"
-            onClick={() => onFilterTypeChange("content")}
-            className={cn(
-              "text-xs px-2.5 py-1 rounded-md transition-all duration-200 whitespace-nowrap",
-              sessionSearch.filterType === "content"
-                ? "bg-zinc-600/80 text-zinc-100 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
-            )}
-            title={t("messageViewer.filterType")}
-          >
-            {t("messageViewer.filterContent")}
-          </button>
-          <button
-            type="button"
-            onClick={() => onFilterTypeChange("toolId")}
-            className={cn(
-              "text-xs px-2.5 py-1 rounded-md transition-all duration-200 whitespace-nowrap",
-              sessionSearch.filterType === "toolId"
-                ? "bg-zinc-600/80 text-zinc-100 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
-            )}
-            title={t("messageViewer.filterType")}
-          >
-            {t("messageViewer.filterToolId")}
-          </button>
-        </div>
-
         {/* Search Input - Glass morphism */}
         <div className="relative flex-1 group order-1 lg:order-none w-full lg:w-auto">
           <Search className={cn(
@@ -713,27 +576,9 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
           </div>
         )}
 
-        {/* Capture & Export Buttons */}
+        {/* Export Button */}
         {!isCaptureMode && (
           <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={enterCaptureMode}
-              className={cn(
-                "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg whitespace-nowrap",
-                "transition-all duration-200",
-                "bg-zinc-700/60 hover:bg-zinc-600/70",
-                "text-zinc-300 hover:text-zinc-100",
-                "border border-zinc-600/50 hover:border-zinc-500/50",
-                "shadow-sm hover:shadow-md"
-              )}
-              title={t("captureMode.tooltip")}
-              aria-label={t("captureMode.enter")}
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline font-medium">{t("captureMode.enter")}</span>
-            </button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -776,16 +621,6 @@ export const MessageViewer: React.FC<MessageViewerProps> = ({
       {/* Filter Toolbar */}
       {!isCaptureMode && messages.length > 0 && (
         <FilterToolbar totalCount={messages.length} filteredCount={displayMessages.length} />
-      )}
-
-      {/* Capture Mode Toolbar */}
-      {isCaptureMode && (
-        <CaptureModeToolbar
-          selectedCount={selectedVisibleCount}
-          hasSelection={hasSelection}
-          onScreenshot={handleScreenshot}
-          onClearSelection={clearSelection}
-        />
       )}
 
       <div className="relative flex-1 min-h-0">

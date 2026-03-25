@@ -191,17 +191,14 @@ const handlers = {
 
   load_provider_messages: (args) => handlers.load_session_messages(args),
 
-  load_session_messages_paginated: ({ sessionPath, page, pageSize }) => {
+  load_session_messages_paginated: ({ sessionPath }) => {
     const all = handlers.load_session_messages({ sessionPath });
-    const p = page || 1;
-    const ps = pageSize || 100;
-    const start = (p - 1) * ps;
     return {
-      messages: all.slice(start, start + ps),
+      messages: all,
       total: all.length,
-      page: p,
-      page_size: ps,
-      has_more: start + ps < all.length,
+      page: 1,
+      page_size: all.length,
+      has_more: false,
     };
   },
 
@@ -234,6 +231,56 @@ const handlers = {
     }
     return results;
   },
+
+  load_all_recent_sessions: () => {
+    const dir = PROJECTS_DIR;
+    if (!existsSync(dir)) return [];
+    const allSessions = [];
+    for (const name of readdirSync(dir)) {
+      const projectDir = join(dir, name);
+      try { if (!statSync(projectDir).isDirectory()) continue; } catch { continue; }
+      const jsonlFiles = readdirSync(projectDir).filter((f) => f.endsWith(".jsonl"));
+      if (jsonlFiles.length === 0) continue;
+      const cache = loadSessionCache(projectDir);
+      const realPath = getCwdFromFile(join(projectDir, jsonlFiles[0])) || decodeProjectPath(name);
+      const projectName = basename(realPath);
+      for (const f of jsonlFiles) {
+        const filePath = join(projectDir, f);
+        const sessionId = f.replace(".jsonl", "");
+        let stat;
+        try { stat = statSync(filePath); } catch { continue; }
+        let summary = null, msgCount = null, firstTime = null, lastTime = null;
+        if (cache?.entries) {
+          const entry = cache.entries[filePath];
+          if (entry?.session) {
+            summary = entry.session.summary || entry.first_user_content;
+            msgCount = entry.session.message_count;
+            firstTime = entry.session.first_message_time;
+            lastTime = entry.session.last_message_time;
+          }
+        }
+        if (!summary) summary = getSessionSummary(filePath);
+        allSessions.push({
+          session_id: sessionId,
+          actual_session_id: sessionId,
+          project_name: projectName,
+          file_path: filePath,
+          message_count: msgCount || 0,
+          first_message_time: firstTime || new Date(stat.birthtimeMs).toISOString(),
+          last_message_time: lastTime || new Date(stat.mtimeMs).toISOString(),
+          last_modified: new Date(stat.mtimeMs).toISOString(),
+          has_tool_use: false,
+          has_errors: false,
+          summary: summary || `Session ${sessionId.slice(0, 8)}...`,
+          provider: "claude",
+        });
+      }
+    }
+    allSessions.sort((a, b) => new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime());
+    return allSessions.slice(0, 100);
+  },
+
+  load_recent_sessions: (args) => handlers.load_all_recent_sessions(args),
 
   // Stats (return zeros for now — optional feature)
   get_session_token_stats: () => ({ total_input_tokens: 0, total_output_tokens: 0, total_cache_creation: 0, total_cache_read: 0, message_count: 0, model_breakdown: {} }),

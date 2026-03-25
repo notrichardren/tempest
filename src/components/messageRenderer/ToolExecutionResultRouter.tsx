@@ -1,5 +1,4 @@
 import React from "react";
-import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   ClaudeSessionHistoryRenderer,
@@ -21,10 +20,19 @@ import {
 import { FileContent } from "../FileContent";
 import { CommandOutputDisplay } from "./CommandOutputDisplay";
 import { formatClaudeErrorOutput } from "../../utils/messageUtils";
-import { Renderer } from "../../shared/RendererHeader";
 import { cn } from "@/lib/utils";
-import { layout } from "@/components/renderers";
 import { AnsiText } from "../common/AnsiText";
+
+function ResultWrapper({ children, isError }: { children: React.ReactNode; isError?: boolean }) {
+  return (
+    <div className="mt-0.5 ml-[11px]">
+      <div className="flex items-start gap-1 text-[13px]">
+        <span className={cn("shrink-0 font-mono", isError ? "text-destructive" : "text-muted-foreground")}>⎿</span>
+        <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 interface ToolExecutionResultRouterProps {
   toolResult: Record<string, unknown> | string | unknown[];
@@ -92,7 +100,11 @@ export const ToolExecutionResultRouter: React.FC<
 
   // Handle array toolUseResult (e.g., [{type: "text", text: "..."}])
   if (Array.isArray(toolResult)) {
-    return <ContentArrayRenderer toolResult={{ content: toolResult }} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <ContentArrayRenderer toolResult={{ content: toolResult }} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle string toolUseResult first (like file trees, directory listings, errors)
@@ -100,21 +112,31 @@ export const ToolExecutionResultRouter: React.FC<
     // Check if it's an error message
     if (toolResult.startsWith("Error: ")) {
       return (
-        <ErrorRenderer
-          error={toolResult}
-          searchQuery={searchQuery}
-          isCurrentMatch={isCurrentMatch}
-          currentMatchIndex={currentMatchIndex}
-        />
+        <ResultWrapper isError>
+          <ErrorRenderer
+            error={toolResult}
+            searchQuery={searchQuery}
+            isCurrentMatch={isCurrentMatch}
+            currentMatchIndex={currentMatchIndex}
+          />
+        </ResultWrapper>
       );
     }
 
     // Check if string content is JSONL Claude session history
     if (isClaudeSessionHistory(toolResult)) {
-      return <ClaudeSessionHistoryRenderer content={toolResult} />;
+      return (
+        <ResultWrapper>
+          <ClaudeSessionHistoryRenderer content={toolResult} />
+        </ResultWrapper>
+      );
     }
 
-    return <StringRenderer result={toolResult} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <StringRenderer result={toolResult} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle Claude Code specific formats first
@@ -125,12 +147,14 @@ export const ToolExecutionResultRouter: React.FC<
     (toolResult.method || toolResult.function)
   ) {
     return (
-      <MCPRenderer
-        mcpData={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <MCPRenderer
+          mcpData={toolResult}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -143,12 +167,14 @@ export const ToolExecutionResultRouter: React.FC<
     toolResult.contextWindow !== undefined
   ) {
     return (
-      <CodebaseContextRenderer
-        contextData={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <CodebaseContextRenderer
+          contextData={toolResult}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -160,16 +186,18 @@ export const ToolExecutionResultRouter: React.FC<
       (toolResult.stream || toolResult.stdout || toolResult.stderr))
   ) {
     return (
-      <TerminalStreamRenderer
-        command={toolResult.command as string}
-        stream={toolResult.stream as string}
-        output={toolResult.output as string}
-        timestamp={toolResult.timestamp as string}
-        exitCode={toolResult.exitCode as number}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <TerminalStreamRenderer
+          command={toolResult.command as string}
+          stream={toolResult.stream as string}
+          output={toolResult.output as string}
+          timestamp={toolResult.timestamp as string}
+          exitCode={toolResult.exitCode as number}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -185,12 +213,14 @@ export const ToolExecutionResultRouter: React.FC<
     toolResult.commit
   ) {
     return (
-      <GitWorkflowRenderer
-        gitData={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <GitWorkflowRenderer
+          gitData={toolResult}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -208,34 +238,40 @@ export const ToolExecutionResultRouter: React.FC<
       (firstResult.includes("I'll search") || firstResult.includes("search"))
     ) {
       return (
+        <ResultWrapper>
+          <WebSearchRenderer
+            searchData={toolResult}
+            searchQuery={searchQuery}
+            isCurrentMatch={isCurrentMatch}
+            currentMatchIndex={currentMatchIndex}
+          />
+        </ResultWrapper>
+      );
+    }
+    // Even without "I'll search", if it has query + results structure, treat as web search
+    return (
+      <ResultWrapper>
         <WebSearchRenderer
           searchData={toolResult}
           searchQuery={searchQuery}
           isCurrentMatch={isCurrentMatch}
           currentMatchIndex={currentMatchIndex}
         />
-      );
-    }
-    // Even without "I'll search", if it has query + results structure, treat as web search
-    return (
-      <WebSearchRenderer
-        searchData={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      </ResultWrapper>
     );
   }
 
   // Handle todo updates
   if (toolResult.newTodos !== undefined || toolResult.oldTodos !== undefined) {
     return (
-      <TodoUpdateRenderer
-        todoData={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <TodoUpdateRenderer
+          todoData={toolResult}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -245,7 +281,11 @@ export const ToolExecutionResultRouter: React.FC<
     (Array.isArray(toolResult.tasks) && toolResult.tasks.length > 0) ||
     (toolResult.success != null && typeof toolResult.taskId === "string")
   ) {
-    return <TaskResultRenderer toolResult={toolResult} />;
+    return (
+      <ResultWrapper>
+        <TaskResultRenderer toolResult={toolResult} />
+      </ResultWrapper>
+    );
   }
 
   // Handle file list results
@@ -255,12 +295,14 @@ export const ToolExecutionResultRouter: React.FC<
     typeof toolResult.numFiles === "number"
   ) {
     return (
-      <FileListRenderer
-        toolResult={toolResult}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
+      <ResultWrapper>
+        <FileListRenderer
+          toolResult={toolResult}
+          searchQuery={searchQuery}
+          isCurrentMatch={isCurrentMatch}
+          currentMatchIndex={currentMatchIndex}
+        />
+      </ResultWrapper>
     );
   }
 
@@ -284,10 +326,18 @@ export const ToolExecutionResultRouter: React.FC<
       typeof fileData.content === "string" &&
       isClaudeSessionHistory(fileData.content)
     ) {
-      return <ClaudeSessionHistoryRenderer content={fileData.content} />;
+      return (
+        <ResultWrapper>
+          <ClaudeSessionHistoryRenderer content={fileData.content} />
+        </ResultWrapper>
+      );
     }
 
-    return <FileContent fileData={fileData} title={t("toolResult.fileContent")} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <FileContent fileData={fileData} title={t("toolResult.fileContent")} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle file edit results
@@ -296,7 +346,11 @@ export const ToolExecutionResultRouter: React.FC<
     typeof toolResult.filePath === "string" &&
     (toolResult.oldString || toolResult.newString || toolResult.originalFile)
   ) {
-    return <FileEditRenderer toolResult={toolResult} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <FileEditRenderer toolResult={toolResult} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle structured patch results
@@ -306,7 +360,11 @@ export const ToolExecutionResultRouter: React.FC<
     toolResult.filePath &&
     typeof toolResult.filePath === "string"
   ) {
-    return <StructuredPatchRenderer toolResult={toolResult} />;
+    return (
+      <ResultWrapper>
+        <StructuredPatchRenderer toolResult={toolResult} />
+      </ResultWrapper>
+    );
   }
 
   // Handle direct content that might be JSONL Claude session history
@@ -315,12 +373,20 @@ export const ToolExecutionResultRouter: React.FC<
     typeof toolResult.content === "string" &&
     isClaudeSessionHistory(toolResult.content)
   ) {
-    return <ClaudeSessionHistoryRenderer content={toolResult.content} />;
+    return (
+      <ResultWrapper>
+        <ClaudeSessionHistoryRenderer content={toolResult.content} />
+      </ResultWrapper>
+    );
   }
 
   // Handle content array with text objects (Claude API response)
   if (Array.isArray(toolResult.content) && toolResult.content.length > 0) {
-    return <ContentArrayRenderer toolResult={toolResult} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <ContentArrayRenderer toolResult={toolResult} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle direct content as string (non-chat history)
@@ -330,7 +396,11 @@ export const ToolExecutionResultRouter: React.FC<
     !toolResult.stdout &&
     !toolResult.stderr
   ) {
-    return <StringRenderer result={toolResult.content} searchQuery={searchQuery} />;
+    return (
+      <ResultWrapper>
+        <StringRenderer result={toolResult.content} searchQuery={searchQuery} />
+      </ResultWrapper>
+    );
   }
 
   // Handle generic structured results with various properties
@@ -354,71 +424,44 @@ export const ToolExecutionResultRouter: React.FC<
 
   // Handle completely generic objects (fallback)
   if (!hasOutput && !hasMetadata && Object.keys(toolResult).length > 0) {
-    return <FallbackRenderer toolResult={toolResult} />;
+    return (
+      <ResultWrapper>
+        <FallbackRenderer toolResult={toolResult} />
+      </ResultWrapper>
+    );
   }
 
   return (
-    <Renderer
-      className="bg-success/10 border-success/30"
-      hasError={hasError as boolean}
-    >
-      <Renderer.Header
-        title={t("toolResult.toolExecutionResult")}
-        titleClassName="text-success"
-        icon={<Check className="w-4 h-4 text-success" />}
-      />
-      <Renderer.Content>
+    <ResultWrapper isError={hasError as boolean}>
+      <div className="space-y-1">
         {/* 메타데이터 정보 */}
         {hasMetadata && (
-          <div className={`grid grid-cols-2 gap-2 mb-3 ${layout.smallText}`}>
+          <div className="flex gap-3 text-xs">
             {interrupted !== null && (
-              <div className="p-2 rounded border bg-card border-border">
-                <div className="text-muted-foreground">{t("toolResult.executionStatus")}</div>
-                <div
-                  className={cn(
-                    "font-medium",
-                    interrupted ? "text-warning" : "text-success"
-                  )}
-                >
-                  {interrupted ? t("toolResult.interrupted") : t("toolResult.completed")}
-                </div>
-              </div>
+              <span className={cn("font-medium", interrupted ? "text-warning" : "text-success")}>
+                {interrupted ? t("toolResult.interrupted") : t("toolResult.completed")}
+              </span>
             )}
             {isImage !== null && (
-              <div className="p-2 rounded border bg-card border-border">
-                <div className="text-muted-foreground">{t("toolResult.imageResult")}</div>
-                <div
-                  className={cn(
-                    "font-medium",
-                    isImage ? "text-info" : "text-muted-foreground"
-                  )}
-                >
-                  {isImage ? t("toolResult.included") : t("toolResult.none")}
-                </div>
-              </div>
+              <span className={cn("font-medium", isImage ? "text-info" : "text-muted-foreground")}>
+                {isImage ? t("toolResult.included") : t("toolResult.none")}
+              </span>
             )}
           </div>
         )}
 
         {stdout.length > 0 && (
-          <div className="mb-2">
-            <div className="text-muted-foreground">{t("toolResult.output")}:</div>
-            <CommandOutputDisplay stdout={stdout} />
-          </div>
+          <CommandOutputDisplay stdout={stdout} />
         )}
 
         {stderr.length > 0 && (
-          <div className="mb-2">
-            <div className="text-destructive">{t("toolResult.error")}:</div>
-            <pre className={`${layout.bodyText} whitespace-pre-wrap bg-destructive/5 p-2 rounded border border-destructive/30 max-h-96 overflow-y-auto text-destructive`}>
-              <AnsiText text={formatClaudeErrorOutput(stderr)} />
-            </pre>
-          </div>
+          <pre className="text-xs whitespace-pre-wrap text-destructive">
+            <AnsiText text={formatClaudeErrorOutput(stderr)} />
+          </pre>
         )}
 
         {filePath.length > 0 && (
-          <div className="text-muted-foreground">
-            {t("toolResult.file")}:{" "}
+          <div className="text-xs text-muted-foreground">
             <code className="px-1 rounded bg-secondary text-foreground/80">
               {filePath}
             </code>
@@ -427,14 +470,14 @@ export const ToolExecutionResultRouter: React.FC<
 
         {/* 출력이 없을 때 상태 표시 */}
         {!hasOutput && hasMetadata && (
-          <div className="text-muted-foreground">{t("toolResult.noOutput")}</div>
+          <div className="text-xs text-muted-foreground">{t("toolResult.noOutput")}</div>
         )}
 
         {/* 완전히 빈 결과일 때 */}
         {!hasOutput && !hasMetadata && (
-          <div className="text-muted-foreground">{t("toolResult.executionComplete")}</div>
+          <div className="text-xs text-muted-foreground">{t("toolResult.executionComplete")}</div>
         )}
-      </Renderer.Content>
-    </Renderer>
+      </div>
+    </ResultWrapper>
   );
 };

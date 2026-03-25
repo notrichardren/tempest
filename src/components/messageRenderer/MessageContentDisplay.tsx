@@ -11,8 +11,8 @@ import { layout } from "@/components/renderers";
 import { cn } from "@/lib/utils";
 import { useCaptureExpandState } from "@/contexts/CaptureExpandContext";
 
-const LINE_LIMIT = 3;
-const TABLE_ROW_LIMIT = 2;
+const LINE_LIMIT = 999999;
+const TABLE_ROW_LIMIT = 999999;
 
 // Get line count and preview text
 const getTextInfo = (text: string) => {
@@ -206,6 +206,7 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
             "whitespace-pre-wrap break-words",
             layout.bodyText
           )}>
+            <span className="text-amber-400 font-bold mr-1.5 select-none" aria-hidden="true">{"\u276F"}</span>
             {searchQuery ? (
               <HighlightedText
                 text={content}
@@ -259,6 +260,7 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
     return (
       <div className="mb-3 flex justify-start">
         <div className="max-w-[95%] md:max-w-2xl bg-secondary text-secondary-foreground rounded-2xl px-4 py-3 relative group shadow-sm border border-border">
+          <span className="text-indigo-400 font-bold mr-1.5 select-none float-left mt-0.5" aria-hidden="true">{"\u23FA"}</span>
           {/* 검색 중일 때는 plain text로 렌더링 (성능 + 하이라이팅) */}
           {searchQuery ? (
             <div className={`whitespace-pre-wrap break-words ${layout.bodyText}`}>

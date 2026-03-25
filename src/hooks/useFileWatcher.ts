@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { isTauri, getApiBase, getAuthToken } from '@/utils/platform';
+import { isTauri, getApiBase } from '@/utils/platform';
 import { toast } from 'sonner';
 
 type UnlistenFn = () => void;
@@ -158,11 +158,7 @@ export function useFileWatcher(options: UseFileWatcherOptions = {}): UseFileWatc
       // ---- Web path: SSE via EventSource ----
       try {
         const base = getApiBase();
-        const token = getAuthToken();
-        // Note: EventSource cannot send custom headers, so token is passed via query param.
-        const url = token
-          ? `${base}/api/events?token=${encodeURIComponent(token)}`
-          : `${base}/api/events`;
+        const url = `${base}/api/events`;
 
         const es = new EventSource(url);
 
