@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Settings, RefreshCw, MessageSquare, Folder, Loader2 } from "lucide-react";
+import { Settings, RefreshCw, Folder, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -54,10 +54,6 @@ export const SettingDropdown = ({ updater }: SettingDropdownProps) => {
           >
             <Folder className="mr-2 h-4 w-4 text-foreground" />
             <span>{t('common.settings.changeFolder')}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => openModal("feedback")}>
-            <MessageSquare className="mr-2 h-4 w-4 text-foreground" />
-            <span>{t("feedback.title")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <FilterMenuGroup />
