@@ -1,12 +1,6 @@
 import { memo } from "react";
-import { CheckCircle2, Clock3, AlertTriangle } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Renderer } from "@/shared/RendererHeader";
-import { ToolIcon } from "../ToolIcon";
-import { getToolVariant } from "@/utils/toolIconUtils";
-import { getVariantStyles, layout } from "../renderers";
-
+import { useToggle } from "@/hooks";
 const PREVIEW_MAX_LEN = 6000;
 
 type ToolResultLike = Record<string, unknown>;
@@ -16,138 +10,73 @@ interface Props {
   toolResults: ToolResultLike[];
 }
 
-const truncateText = (text: string) => {
-  if (text.length <= PREVIEW_MAX_LEN) return text;
-  return `${text.slice(0, PREVIEW_MAX_LEN)}\n...`;
-};
+const truncateText = (text: string) =>
+  text.length <= PREVIEW_MAX_LEN ? text : `${text.slice(0, PREVIEW_MAX_LEN)}\n...`;
 
 const stringifyPreview = (value: unknown) => {
   if (typeof value === "string") return truncateText(value);
-  try {
-    return truncateText(JSON.stringify(value, null, 2));
-  } catch {
-    return String(value);
-  }
+  try { return truncateText(JSON.stringify(value, null, 2)); } catch { return String(value); }
 };
 
-const isResultError = (result: ToolResultLike) => {
-  if (result.is_error === true) return true;
-  const content = result.content;
-  if (content && typeof content === "object") {
-    return "error_code" in content;
-  }
-  return typeof result.type === "string" && result.type.includes("error");
-};
-
-const getToolDisplayName = (
-  toolName: string,
-  t: (key: string, options?: Record<string, unknown>) => string
-) => {
-  if (toolName === "Bash") {
-    return t("tools.terminal");
-  }
-  return toolName || t("common.unknown");
-};
+function getToolSummary(toolName: string, input: Record<string, unknown>): string {
+  if (typeof input.command === "string") return input.command;
+  if (typeof input.file_path === "string") return input.file_path;
+  if (typeof input.pattern === "string") return input.pattern;
+  if (typeof input.query === "string") return input.query;
+  if (typeof input.description === "string") return input.description;
+  if (typeof input.url === "string") return input.url;
+  const s = JSON.stringify(input);
+  return s.length > 120 ? s.slice(0, 120) + "\u2026" : s;
+}
 
 export const UnifiedToolExecutionRenderer = memo(function UnifiedToolExecutionRenderer({
   toolUse,
   toolResults,
 }: Props) {
-  const { t } = useTranslation();
-
-  const toolName = (toolUse.name as string) || "";
+  const toolName = (toolUse.name as string) || "Unknown";
   const toolId = (toolUse.id as string) || "";
   const toolInput = (toolUse.input as Record<string, unknown>) ?? {};
-  const variant = getToolVariant(toolName);
-  const styles = getVariantStyles(variant);
+  const [isOpen, toggle] = useToggle(toolId ? `unified-${toolId}` : "unified-tool");
 
-  const hasResult = toolResults.length > 0;
-  const hasError = hasResult && toolResults.some(isResultError);
-  const isPending = !hasResult;
+  const summary = getToolSummary(toolName, toolInput);
+  const truncatedSummary = summary.length > 120 ? summary.slice(0, 120) + "\u2026" : summary;
 
-  const statusBadge = hasError ? (
-    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded", layout.smallText, "bg-destructive/20 text-destructive")}>
-      <AlertTriangle className={layout.iconSizeSmall} />
-      {t("common.error")}
-    </span>
-  ) : isPending ? (
-    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded", layout.smallText, "bg-warning/20 text-warning")}>
-      <Clock3 className={layout.iconSizeSmall} />
-      {t("common.pending")}
-    </span>
-  ) : (
-    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded", layout.smallText, "bg-success/20 text-success")}>
-      <CheckCircle2 className={layout.iconSizeSmall} />
-      {t("common.completed")}
-    </span>
-  );
-
-  const primaryPreview =
-    typeof toolInput.command === "string"
-      ? toolInput.command
-      : typeof toolInput.file_path === "string"
-        ? toolInput.file_path
-        : typeof toolInput.path === "string"
-          ? toolInput.path
-          : null;
+  const hasError = toolResults.some((r) => r.is_error === true);
 
   return (
-    <Renderer className={styles.container} hasError={hasError}>
-      <Renderer.Header
-        title={getToolDisplayName(toolName, t)}
-        icon={<ToolIcon toolName={toolName} className={cn(layout.iconSize, styles.icon)} />}
-        titleClassName={styles.title}
-        rightContent={
-          <div className={cn("flex items-center", layout.iconGap)}>
-            {statusBadge}
-              {toolId && (
-                <code className={cn(layout.monoText, "hidden md:inline px-2 py-0.5", layout.rounded, styles.badge, styles.badgeText)}>
-                  {t("common.id")}: {toolId}
-                </code>
-              )}
-            </div>
-          }
-        />
-      <Renderer.Content>
-        {toolId && (
-          <code className={cn(layout.monoText, "block md:hidden mb-2 text-muted-foreground")}>
-            {t("common.id")}: {toolId}
-          </code>
-        )}
-        {primaryPreview && (
-          <pre className={cn(layout.monoText, "mb-2 p-2 bg-secondary text-foreground rounded overflow-x-auto whitespace-pre-wrap")}>
-            {primaryPreview}
-          </pre>
-        )}
+    <div className="mt-1">
+      {/* Header: dot + ToolName(summary) */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        className="flex items-start gap-1.5 text-left w-full hover:bg-muted/30 rounded-sm py-0.5 -mx-1 px-1 transition-colors"
+      >
+        <span className={cn("w-3 h-3 rounded-full shrink-0 mt-1", hasError ? "bg-destructive/60" : "bg-muted-foreground/60")} />
+        <span className="text-[13px] font-mono min-w-0 break-all">
+          <span className="font-semibold text-foreground">{toolName}</span>
+          {truncatedSummary && (
+            <span className="text-muted-foreground">({truncatedSummary})</span>
+          )}
+        </span>
+      </button>
 
-        <details className="mb-2">
-          <summary className={cn(layout.smallText, "cursor-pointer text-muted-foreground")}>
-            {t("common.input")}
-          </summary>
-          <pre className={cn(layout.monoText, "mt-2 p-2 bg-secondary text-foreground rounded overflow-x-auto whitespace-pre-wrap", layout.codeMaxHeight)}>
+      {/* Expanded: input + results with left border */}
+      {isOpen && (
+        <div className="ml-[11px] pl-3 border-l border-border/40 mt-0.5 pb-0.5 text-[13px] space-y-2">
+          <pre className="font-mono text-[12px] p-2 bg-secondary text-foreground rounded overflow-x-auto whitespace-pre-wrap max-h-64">
             {stringifyPreview(toolInput)}
           </pre>
-        </details>
-
-        {toolResults.length > 0 ? (
-          <div className="space-y-2">
-            {toolResults.map((result, idx) => (
-              <details key={idx}>
-                <summary className={cn(layout.smallText, "cursor-pointer text-muted-foreground")}>
-                  {t("toolResult.toolExecutionResult")} #{idx + 1}
-                </summary>
-                <pre className={cn(layout.monoText, "mt-2 p-2 bg-secondary text-foreground rounded overflow-x-auto whitespace-pre-wrap", layout.codeMaxHeight)}>
-                  {stringifyPreview(result.content)}
-                </pre>
-              </details>
-            ))}
-          </div>
-        ) : (
-          <div className={cn(layout.smallText, "text-muted-foreground italic")}>
-            {t("common.pending")}
-          </div>
-        )}
-      </Renderer.Content>
-    </Renderer>
+          {toolResults.map((result, idx) => (
+            <pre key={idx} className={cn(
+              "font-mono text-[12px] p-2 rounded overflow-x-auto whitespace-pre-wrap max-h-64",
+              hasError ? "bg-destructive/10 text-destructive" : "bg-secondary text-foreground"
+            )}>
+              {stringifyPreview(result.content)}
+            </pre>
+          ))}
+        </div>
+      )}
+    </div>
   );
 });

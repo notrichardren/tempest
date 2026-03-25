@@ -2,6 +2,7 @@ import React, { useMemo, Children, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CommandRenderer, ImageRenderer, TaskNotificationRenderer, hasTaskNotification } from "../contentRenderer";
 import { isImageUrl, isBase64Image } from "../../utils/messageUtils";
 import { HighlightedText } from "../common";

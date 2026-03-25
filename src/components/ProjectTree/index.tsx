@@ -88,10 +88,24 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
     closeContextMenu,
   } = useProjectTreeState(groupingMode);
 
-  // Recent sessions state
-  const [isViewingRecent, setIsViewingRecent] = useState(false);
+  // Recent sessions state — default to recent view
+  const [isViewingRecent, setIsViewingRecent] = useState(true);
   const [recentSessions, setRecentSessions] = useState<ClaudeSession[]>([]);
-  const [isLoadingRecent, setIsLoadingRecent] = useState(false);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+
+  // Auto-load recent sessions on mount
+  React.useEffect(() => {
+    let cancelled = false;
+    api<ClaudeSession[]>("load_all_recent_sessions").then((sessions) => {
+      if (!cancelled) {
+        setRecentSessions(sessions);
+        setIsLoadingRecent(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setIsLoadingRecent(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleRecentClick = useCallback(async () => {
     if (isViewingRecent) {
@@ -953,9 +967,9 @@ export const ProjectTree: React.FC<ProjectTreeProps> = ({
               {/* Divider */}
               <div className="my-2 mx-4 h-px bg-sidebar-border" />
 
-              {/* Recent Sessions List (when active) */}
+              {/* Recent Sessions List (when active) — takes full sidebar */}
               {isViewingRecent && (
-                <div className="px-2 py-1">
+                <div className="px-2 py-1 flex-1 overflow-y-auto">
                   {isLoadingRecent ? (
                     <div className="py-4 text-center text-xs text-muted-foreground">
                       Loading recent sessions...
