@@ -13,30 +13,18 @@ import { memo } from "react";
  */
 
 import { Highlight, themes } from "prism-react-renderer";
-import { useTranslation } from "react-i18next";
-import {
-  FileText,
-  MessageSquare,
-  Hash,
-  CheckCircle,
-  FilePlus,
-} from "lucide-react";
-import { ToolIcon } from "../ToolIcon";
-import { Renderer } from "../../shared/RendererHeader";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme";
 import { FileEditRenderer } from "../toolResultRenderer/FileEditRenderer";
-import { HighlightedText } from "../common";
 import { MCPToolUseRenderer } from "./MCPToolUseRenderer";
 import { getToolVariant } from "@/utils/toolIconUtils";
 import {
   type BaseRendererProps,
-  getVariantStyles,
   getLanguageFromPath,
   codeTheme,
-  layout,
 } from "../renderers";
 import { getPreStyles, getLineStyles, getTokenStyles } from "@/utils/prismStyles";
+import { ToolUseCard } from "./toolUseRenderers/ToolUseCard";
 import {
   ReadToolRenderer,
   BashToolRenderer,
@@ -61,11 +49,7 @@ interface ToolUseRendererProps extends BaseRendererProps {
 
 export const ToolUseRenderer = memo(function ToolUseRenderer({
   toolUse,
-  searchQuery = "",
-  isCurrentMatch = false,
-  currentMatchIndex = 0,
 }: ToolUseRendererProps) {
-  const { t } = useTranslation();
   const { isDarkMode } = useTheme();
 
   const toolName = (toolUse.name as string) || "Unknown Tool";
@@ -89,23 +73,6 @@ export const ToolUseRenderer = memo(function ToolUseRenderer({
 
   // Get variant styles based on tool type
   const variant = getToolVariant(toolName);
-  const styles = getVariantStyles(variant);
-
-  // Tool ID with search highlighting
-  const renderToolId = (id: string) => {
-    if (!id) return null;
-    const label = `${t("common.id")}: ${id}`;
-    return searchQuery ? (
-      <HighlightedText
-        text={label}
-        searchQuery={searchQuery}
-        isCurrentMatch={isCurrentMatch}
-        currentMatchIndex={currentMatchIndex}
-      />
-    ) : (
-      <>{label}</>
-    );
-  };
 
   // === Named Tool Renderers ===
   switch (toolName) {
@@ -181,94 +148,41 @@ export const ToolUseRenderer = memo(function ToolUseRenderer({
     const filePath = typeof toolInput.file_path === "string" ? toolInput.file_path : "";
     const content = typeof toolInput.content === "string" ? toolInput.content : "";
     const language = getLanguageFromPath(filePath);
-    const writeStyles = getVariantStyles("success");
 
     return (
-      <Renderer className={writeStyles.container}>
-        <Renderer.Header
-          title={t("toolUseRenderer.fileCreation")}
-          icon={<FilePlus className={cn(layout.iconSize, writeStyles.icon)} />}
-          titleClassName={writeStyles.title}
-          rightContent={
-            toolId && (
-              <code
-                className={cn(
-                  layout.monoText,
-                  "hidden md:inline px-2 py-1",
-                  layout.rounded,
-                  writeStyles.badge,
-                  writeStyles.badgeText
-                )}
+      <ToolUseCard title="Write" icon={null} variant="success" toolId={toolId} summary={filePath}>
+        <div className={cn(layout.rounded, "overflow-auto max-h-64")}>
+          <Highlight
+            theme={isDarkMode ? themes.vsDark : themes.vsLight}
+            code={content}
+            language={language}
+          >
+            {({ className, style, tokens, getLineProps, getTokenProps }) => (
+              <pre
+                className={className}
+                style={getPreStyles(isDarkMode, style, {
+                  fontSize: codeTheme.fontSize,
+                  padding: codeTheme.padding,
+                })}
               >
-                {renderToolId(toolId)}
-              </code>
-            )
-          }
-        />
-        <Renderer.Content>
-          {toolId && (
-            <code className={cn(layout.monoText, "block md:hidden mb-2 text-muted-foreground")}>
-              {renderToolId(toolId)}
-            </code>
-          )}
-          {/* File path */}
-          <div className={cn("mb-3 p-2 border bg-info/10 border-info/30", layout.rounded)}>
-            <div className={cn("flex items-center", layout.iconSpacing)}>
-              <FileText className={cn(layout.iconSizeSmall, "text-info")} />
-              <code className={cn(layout.bodyText, "font-mono text-info")}>{filePath}</code>
-            </div>
-          </div>
-
-          {/* File content */}
-          <div>
-            <div className={cn(layout.titleText, "mb-2 flex items-center space-x-1 text-success")}>
-              <CheckCircle className={layout.iconSize} />
-              <span>{t("toolUseRenderer.createdContent")}</span>
-            </div>
-            <div className={cn(layout.rounded, "overflow-auto", layout.contentMaxHeight)}>
-              <Highlight
-                theme={isDarkMode ? themes.vsDark : themes.vsLight}
-                code={content}
-                language={language}
-              >
-                {({
-                  className,
-                  style,
-                  tokens,
-                  getLineProps,
-                  getTokenProps,
-                }) => (
-                  <pre
-                    className={className}
-                    style={getPreStyles(isDarkMode, style, {
-                      fontSize: codeTheme.fontSize,
-                      padding: codeTheme.padding,
-                    })}
-                  >
-                    {tokens.map((line, i) => {
-                      const lineProps = getLineProps({ line });
-                      return (
-                        <div key={i} {...lineProps} style={getLineStyles(lineProps.style)}>
-                          {line.map((token, j) => {
-                            const tokenProps = getTokenProps({ token });
-                            return (
-                              <span
-                                key={j}
-                                {...tokenProps}
-                                style={getTokenStyles(isDarkMode, tokenProps.style)}
-                              />
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </pre>
-                )}
-              </Highlight>
-            </div>
-          </div>
-        </Renderer.Content>
-      </Renderer>
+                {tokens.map((line, i) => {
+                  const lineProps = getLineProps({ line });
+                  return (
+                    <div key={i} {...lineProps} style={getLineStyles(lineProps.style)}>
+                      {line.map((token, j) => {
+                        const tokenProps = getTokenProps({ token });
+                        return (
+                          <span key={j} {...tokenProps} style={getTokenStyles(isDarkMode, tokenProps.style)} />
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </pre>
+            )}
+          </Highlight>
+        </div>
+      </ToolUseCard>
     );
   }
 
@@ -296,124 +210,58 @@ export const ToolUseRenderer = memo(function ToolUseRenderer({
   // === Assistant Prompt Renderer ===
   if (isAssistantPrompt) {
     const promptInput = toolInput as { description: string; prompt: string };
-    const infoStyles = getVariantStyles("info");
 
     return (
-      <Renderer className={infoStyles.container}>
-        <Renderer.Header
-          title={t("toolUseRenderer.task")}
-          icon={<MessageSquare className={cn(layout.iconSize, infoStyles.icon)} />}
-          titleClassName={cn("font-bold", infoStyles.title)}
-          rightContent={
-            toolId && (
-              <div className={cn("hidden md:flex items-center", layout.iconSpacing, layout.bodyText)}>
-                <Hash className={cn(layout.iconSizeSmall, infoStyles.icon)} />
-                <span className={cn("font-mono", infoStyles.accent)}>
-                  {renderToolId(toolId)}
-                </span>
-              </div>
-            )
-          }
-        />
-        <Renderer.Content>
-          {toolId && (
-            <code className={cn(layout.monoText, "block md:hidden mb-2 text-muted-foreground")}>
-              {renderToolId(toolId)}
-            </code>
-          )}
-          <div className="mb-4">
-            <div className={cn(layout.bodyText, "font-semibold mb-2 text-foreground")}>
-              {t("toolUseRenderer.taskDescription")}
-            </div>
-            <div className={cn(layout.containerPadding, layout.rounded, "bg-info/20 border border-info/30 text-foreground")}>
-              {promptInput.description}
-            </div>
-          </div>
-
-          <div>
-            <div className={cn(layout.bodyText, "font-semibold mb-2 text-foreground")}>
-              {t("toolUseRenderer.detailedInstructions")}
-            </div>
-            <div className={cn(layout.containerPadding, layout.rounded, "bg-info/20 border border-info/30 text-foreground")}>
-              <div className={cn("whitespace-pre-wrap", layout.bodyText, "leading-relaxed")}>
-                {promptInput.prompt}
-              </div>
-            </div>
-          </div>
-        </Renderer.Content>
-      </Renderer>
+      <ToolUseCard title="Agent" icon={null} variant="info" toolId={toolId} summary={promptInput.description}>
+        <div className="whitespace-pre-wrap text-[12px] leading-relaxed text-muted-foreground max-h-64 overflow-y-auto">
+          {promptInput.prompt}
+        </div>
+      </ToolUseCard>
     );
   }
 
   // === Default Tool Renderer ===
-  return (
-    <Renderer className={styles.container}>
-      <Renderer.Header
-        title={toolName}
-        icon={<ToolIcon toolName={toolName} className={styles.icon} />}
-        titleClassName="text-foreground"
-        rightContent={
-          toolId && (
-            <code
-              className={cn(
-                layout.monoText,
-                "hidden md:inline px-2 py-1",
-                layout.rounded,
-                styles.badge,
-                styles.badgeText
-              )}
-            >
-              {renderToolId(toolId)}
-            </code>
-          )
-        }
-      />
+  const inputSummary = (() => {
+    const keys = Object.keys(toolInput);
+    if (keys.length === 0) return "";
+    const first = toolInput[keys[0]];
+    if (typeof first === "string") return first.slice(0, 100);
+    return JSON.stringify(toolInput).slice(0, 100);
+  })();
 
-      <Renderer.Content>
-        {toolId && (
-          <code className={cn(layout.monoText, "block md:hidden mb-2 text-muted-foreground")}>
-            {renderToolId(toolId)}
-          </code>
-        )}
-        <div className={cn(layout.titleText, "mb-2 text-muted-foreground")}>
-          {t("toolUseRenderer.toolInputParameters")}
-        </div>
-        <div className={cn(layout.rounded, "overflow-auto", layout.contentMaxHeight)}>
-          <Highlight
-            theme={isDarkMode ? themes.vsDark : themes.vsLight}
-            code={JSON.stringify(toolInput, null, 2)}
-            language="json"
-          >
-            {({ className, style, tokens, getLineProps, getTokenProps }) => (
-              <pre
-                className={className}
-                style={getPreStyles(isDarkMode, style, {
-                  fontSize: codeTheme.fontSize,
-                  padding: codeTheme.padding,
-                })}
-              >
-                {tokens.map((line, i) => {
-                  const lineProps = getLineProps({ line });
-                  return (
-                    <div key={i} {...lineProps} style={getLineStyles(lineProps.style)}>
-                      {line.map((token, j) => {
-                        const tokenProps = getTokenProps({ token });
-                        return (
-                          <span
-                            key={j}
-                            {...tokenProps}
-                            style={getTokenStyles(isDarkMode, tokenProps.style)}
-                          />
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </pre>
-            )}
-          </Highlight>
-        </div>
-      </Renderer.Content>
-    </Renderer>
+  return (
+    <ToolUseCard title={toolName} icon={null} variant={variant} toolId={toolId} summary={inputSummary}>
+      <div className={cn(layout.rounded, "overflow-auto max-h-64")}>
+        <Highlight
+          theme={isDarkMode ? themes.vsDark : themes.vsLight}
+          code={JSON.stringify(toolInput, null, 2)}
+          language="json"
+        >
+          {({ className, style, tokens, getLineProps, getTokenProps }) => (
+            <pre
+              className={className}
+              style={getPreStyles(isDarkMode, style, {
+                fontSize: codeTheme.fontSize,
+                padding: codeTheme.padding,
+              })}
+            >
+              {tokens.map((line, i) => {
+                const lineProps = getLineProps({ line });
+                return (
+                  <div key={i} {...lineProps} style={getLineStyles(lineProps.style)}>
+                    {line.map((token, j) => {
+                      const tokenProps = getTokenProps({ token });
+                      return (
+                        <span key={j} {...tokenProps} style={getTokenStyles(isDarkMode, tokenProps.style)} />
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </pre>
+          )}
+        </Highlight>
+      </div>
+    </ToolUseCard>
   );
 });

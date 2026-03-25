@@ -1,63 +1,71 @@
 import { memo, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { Renderer } from "@/shared/RendererHeader";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, layout, type RendererVariant } from "@/components/renderers";
+import { getVariantStyles, type RendererVariant } from "@/components/renderers";
+import { useToggle } from "@/hooks";
 
 interface ToolUseCardProps {
   title: string;
   icon: ReactNode;
   variant: RendererVariant;
   toolId?: string;
+  /** Short summary shown in parens after the tool name: ⏺ ToolName(summary) */
+  summary?: string;
   rightContent?: ReactNode;
   children: ReactNode;
 }
 
+/**
+ * Terminal-style tool use card matching Claude Code's rendering:
+ *
+ *   ⏺ ToolName(summary_text)
+ *     ⎿  [expanded detail content]
+ */
 export const ToolUseCard = memo(function ToolUseCard({
   title,
-  icon,
   variant,
   toolId,
-  rightContent,
+  summary,
   children,
 }: ToolUseCardProps) {
-  const { t } = useTranslation();
+  const [isOpen, toggle] = useToggle(toolId ? `tooluse-${toolId}` : "tool-card");
   const styles = getVariantStyles(variant);
 
+  const truncatedSummary = summary
+    ? summary.length > 120
+      ? summary.slice(0, 120) + "\u2026"
+      : summary
+    : "";
+
   return (
-    <Renderer className={styles.container} expandKey={toolId ? `tooluse-${toolId}` : undefined}>
-      <Renderer.Header
-        title={title}
-        icon={icon}
-        titleClassName={styles.title}
-        rightContent={
-          <div className={cn("flex items-center gap-2", layout.smallText)}>
-            {rightContent}
-            {toolId && (
-              <code
-                className={cn(
-                  layout.monoText,
-                  "hidden md:inline px-2 py-0.5",
-                  layout.rounded,
-                  styles.badge,
-                  styles.badgeText
-                )}
-              >
-                {t("common.id")}: {toolId}
-              </code>
-            )}
-          </div>
-        }
-      />
-      <Renderer.Content>
-        {toolId && (
-          <code className={cn(layout.monoText, "block md:hidden mb-2 text-muted-foreground")}>
-            {t("common.id")}: {toolId}
-          </code>
+    <div className="mt-1">
+      {/* Header: ⏺ ToolName(summary) */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        className={cn(
+          "flex items-start gap-1.5 text-left w-full",
+          "hover:bg-muted/30 rounded-sm py-0.5 -mx-1 px-1 transition-colors"
         )}
-        {children}
-      </Renderer.Content>
-    </Renderer>
+      >
+        <span className={cn("shrink-0 mt-px", styles.icon)}>&#x23FA;</span>
+        <span className="text-[13px] font-mono min-w-0 break-all">
+          <span className="font-semibold text-foreground">{title}</span>
+          {truncatedSummary && (
+            <span className="text-muted-foreground">
+              ({truncatedSummary})
+            </span>
+          )}
+        </span>
+      </button>
+
+      {/* Expanded content — indented with left border */}
+      {isOpen && (
+        <div className="ml-[11px] pl-3 border-l border-border/40 mt-0.5 pb-0.5 text-[13px]">
+          {children}
+        </div>
+      )}
+    </div>
   );
 });
 
@@ -74,7 +82,7 @@ export function ToolUsePropertyRow({
 }: ToolUsePropertyRowProps) {
   return (
     <div className={cn("flex items-start gap-2", className)}>
-      <span className={cn(layout.smallText, "text-muted-foreground shrink-0 pt-0.5")}>
+      <span className="text-[11px] text-muted-foreground shrink-0 pt-0.5">
         {label}:
       </span>
       {children}

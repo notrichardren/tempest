@@ -45,6 +45,8 @@ type RendererWrapperProps = {
   hasError?: boolean;
   enableToggle?: boolean;
   expandKey?: string;
+  /** Use Claude Code terminal result style: ⎿ indented content */
+  resultMode?: boolean;
 };
 
 const RendererWrapper = ({
@@ -53,19 +55,26 @@ const RendererWrapper = ({
   hasError = false,
   enableToggle = true,
   expandKey,
+  resultMode = false,
 }: RendererWrapperProps) => {
   return (
     <ContentProvider hasError={hasError} enableToggle={enableToggle} expandKey={expandKey}>
-      <div
-        className={cn(
-          "mt-1.5 border border-border overflow-hidden",
-          layout.rounded,
-          className,
-          hasError && "bg-destructive/10 border-destructive/50"
-        )}
-      >
-        {children}
-      </div>
+      {resultMode ? (
+        <div className={cn("mt-0.5 ml-[11px] text-[13px]", className, hasError && "text-destructive")}>
+          {children}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "mt-1.5 border border-border overflow-hidden",
+            layout.rounded,
+            className,
+            hasError && "bg-destructive/10 border-destructive/50"
+          )}
+        >
+          {children}
+        </div>
+      )}
     </ContentProvider>
   );
 };
@@ -179,7 +188,21 @@ const RendererContent = ({ children }: RendererContentProps) => {
   return isOpen ? <div className={layout.contentPadding}>{children}</div> : null;
 };
 
+/**
+ * Result-mode content: renders with ⎿ prefix in Claude Code style.
+ * Always visible (no toggle).
+ */
+const RendererResultContent = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex items-start gap-1">
+      <span className="text-muted-foreground shrink-0 font-mono">&#x239F;</span>
+      <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
+    </div>
+  );
+};
+
 export const Renderer = Object.assign(RendererWrapper, {
   Header: RendererHeader,
   Content: RendererContent,
+  ResultContent: RendererResultContent,
 });

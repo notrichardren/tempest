@@ -1,8 +1,6 @@
 import { memo } from "react";
-import { FileText, Hash } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, layout } from "@/components/renderers";
+import { layout } from "@/components/renderers";
 import { ToolUseCard } from "./ToolUseCard";
 
 interface ReadToolInput {
@@ -17,40 +15,23 @@ interface Props {
 }
 
 export const ReadToolRenderer = memo(function ReadToolRenderer({ toolId, input }: Props) {
-  const { t } = useTranslation();
-  const styles = getVariantStyles("code");
   const filePath = input.file_path ?? "";
   const hasRange = input.offset != null || input.limit != null;
 
   return (
     <ToolUseCard
-      title={t("tools.readFile")}
-      icon={<FileText className={cn(layout.iconSize, styles.icon)} />}
+      title="Read"
+      icon={null}
       variant="code"
       toolId={toolId}
+      summary={filePath}
     >
-        <div className={cn("p-2 border bg-card border-border", layout.rounded)}>
-          <div className={cn("flex items-center", layout.iconSpacing)}>
-            <FileText className={cn(layout.iconSizeSmall, "text-info")} />
-            <code className={cn(layout.bodyText, "font-mono text-info break-all")}>{filePath}</code>
-          </div>
+      {hasRange && (
+        <div className={cn("flex items-center gap-3 text-muted-foreground", layout.smallText)}>
+          {input.offset != null && <span>offset: {input.offset}</span>}
+          {input.limit != null && <span>limit: {input.limit}</span>}
         </div>
-        {hasRange && (
-          <div className={cn("mt-2 flex items-center gap-3", layout.smallText, "text-muted-foreground")}>
-            {input.offset != null && (
-              <span className="flex items-center gap-1">
-                <Hash className={layout.iconSizeSmall} />
-                {t("renderers.readToolRenderer.offset")}: {input.offset}
-              </span>
-            )}
-            {input.limit != null && (
-              <span className="flex items-center gap-1">
-                <Hash className={layout.iconSizeSmall} />
-                {t("renderers.readToolRenderer.limit")}: {input.limit}
-              </span>
-            )}
-          </div>
-        )}
+      )}
     </ToolUseCard>
   );
 });

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ListChecks, ArrowRight, Circle } from "lucide-react";
+import { ArrowRight, Circle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getVariantStyles, layout } from "@/components/renderers";
@@ -40,12 +40,19 @@ export const TaskUpdateToolRenderer = memo(function TaskUpdateToolRenderer({ too
   const defaultConfig = TASK_STATUS_CONFIG["pending"];
   const StatusIcon = statusInfo?.icon ?? defaultConfig?.icon ?? Circle;
 
+  const summary = input.status
+    ? `#${input.taskId ?? "?"} → ${input.status}`
+    : input.taskId
+      ? `#${input.taskId}`
+      : undefined;
+
   return (
     <ToolUseCard
-      title={t("tools.taskUpdate")}
-      icon={<ListChecks className={cn(layout.iconSize, styles.icon)} />}
+      title="TaskUpdate"
+      icon={null}
       variant="task"
       toolId={toolId}
+      summary={summary}
       rightContent={
         input.taskId ? (
           <span className={cn("px-1.5 py-0.5 font-mono", layout.rounded, styles.badge, styles.badgeText)}>

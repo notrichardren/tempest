@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { ListPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getVariantStyles, layout } from "@/components/renderers";
@@ -23,10 +22,11 @@ export const TaskCreateToolRenderer = memo(function TaskCreateToolRenderer({ too
 
   return (
     <ToolUseCard
-      title={t("tools.taskCreate")}
-      icon={<ListPlus className={cn(layout.iconSize, styles.icon)} />}
+      title="TaskCreate"
+      icon={null}
       variant="task"
       toolId={toolId}
+      summary={input.description}
     >
         {input.subject && (
           <div className={cn("p-2 border bg-card border-border", layout.rounded, "mb-2")}>

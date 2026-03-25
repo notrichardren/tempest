@@ -1,8 +1,7 @@
 import { memo } from "react";
-import { MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, layout } from "@/components/renderers";
+import { layout } from "@/components/renderers";
 import { ToolUseCard, ToolUsePropertyRow } from "./ToolUseCard";
 
 interface TaskToolInput {
@@ -19,7 +18,6 @@ interface Props {
 
 export const TaskToolRenderer = memo(function TaskToolRenderer({ toolId, input }: Props) {
   const { t } = useTranslation();
-  const styles = getVariantStyles("task");
 
   const hasMeta =
     Boolean(input.subagent_type) || typeof input.run_in_background === "boolean";
@@ -27,10 +25,11 @@ export const TaskToolRenderer = memo(function TaskToolRenderer({ toolId, input }
 
   return (
     <ToolUseCard
-      title={t("toolUseRenderer.task")}
-      icon={<MessageSquare className={cn(layout.iconSize, styles.icon)} />}
+      title="Agent"
+      icon={null}
       variant="task"
       toolId={toolId}
+      summary={input.description ?? input.prompt}
     >
       {hasMeta && (
         <div className="mb-2 space-y-1">

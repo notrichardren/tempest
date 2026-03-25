@@ -1,8 +1,7 @@
 import { memo } from "react";
-import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, layout } from "@/components/renderers";
+import { layout } from "@/components/renderers";
 import { ToolUseCard, ToolUsePropertyRow } from "./ToolUseCard";
 
 interface WebSearchToolInput {
@@ -18,14 +17,14 @@ interface Props {
 
 export const WebSearchToolRenderer = memo(function WebSearchToolRenderer({ toolId, input }: Props) {
   const { t } = useTranslation();
-  const styles = getVariantStyles("web");
 
   return (
     <ToolUseCard
-      title={t("tools.webSearch")}
-      icon={<Search className={cn(layout.iconSize, styles.icon)} />}
+      title="WebSearch"
+      icon={null}
       variant="web"
       toolId={toolId}
+      summary={input.query}
     >
         <div className={cn("p-2 border bg-card border-border", layout.rounded, "space-y-1.5")}>
           <ToolUsePropertyRow label={t("renderers.webSearchToolRenderer.query")}>

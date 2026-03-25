@@ -124,12 +124,31 @@ export const Header = ({ analyticsActions, analyticsComputed, updater }: HeaderP
         </div>
       </div>
 
-      {/* Center: Quick Stats (when session selected) */}
+      {/* Center: Continue command (when session selected) */}
       {selectedSession && computed.isMessagesView && (
         <div className="hidden lg:flex items-center gap-2">
-          <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-2xs text-muted-foreground font-mono">
-            {selectedSession.actual_session_id.slice(0, 8)}
+          <button
+            type="button"
+            onClick={() => {
+              const cmd = `claude -c ${selectedSession.actual_session_id}`;
+              navigator.clipboard.writeText(cmd).catch(() => {});
+              const el = document.getElementById("continue-toast");
+              if (el) {
+                el.textContent = "Copied!";
+                el.classList.remove("opacity-0");
+                setTimeout(() => el.classList.add("opacity-0"), 1500);
+              }
+            }}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border/50 hover:border-accent/50 hover:bg-accent/10 transition-colors group"
+            title="Copy continue command"
+          >
+            <Terminal className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent" />
+            <code className="text-2xs text-muted-foreground font-mono group-hover:text-accent">
+              claude -c {selectedSession.actual_session_id.slice(0, 8)}&hellip;
+            </code>
+          </button>
+          <span id="continue-toast" className="text-2xs text-accent opacity-0 transition-opacity">
+            Copied!
           </span>
         </div>
       )}

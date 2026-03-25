@@ -1,9 +1,7 @@
 import { memo } from "react";
-import { Terminal, Clock, Play } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { Highlight, themes } from "prism-react-renderer";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, codeTheme, layout } from "@/components/renderers";
+import { codeTheme } from "@/components/renderers";
 import { useTheme } from "@/contexts/theme";
 import { getPreStyles, getLineStyles, getTokenStyles } from "@/utils/prismStyles";
 import { ToolUseCard } from "./ToolUseCard";
@@ -21,44 +19,22 @@ interface Props {
 }
 
 export const BashToolRenderer = memo(function BashToolRenderer({ toolId, input }: Props) {
-  const { t } = useTranslation();
   const { isDarkMode } = useTheme();
-  const styles = getVariantStyles("terminal");
   const command = input.command ?? "";
+
+  // Summary: prefer description, fall back to command
+  const summary = input.description || command;
 
   return (
     <ToolUseCard
-      title={t("tools.terminal")}
-      icon={<Terminal className={cn(layout.iconSize, styles.icon)} />}
+      title="Bash"
+      icon={null}
       variant="terminal"
       toolId={toolId}
-      rightContent={
-        <>
-          {input.run_in_background && (
-            <span className={cn("px-1.5 py-0.5", layout.rounded, "bg-amber-500/20 text-amber-600 dark:text-amber-400")}>
-              {t("taskOperation.background")}
-            </span>
-          )}
-          {input.timeout != null && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Clock className={layout.iconSizeSmall} />
-              {(input.timeout / 1000).toFixed(0)}
-              {t("rendererLabels.secondsShort")}
-            </span>
-          )}
-        </>
-      }
+      summary={summary}
     >
-      {input.description && (
-        <div className={cn("mb-2 text-muted-foreground", layout.smallText)}>
-          {input.description}
-        </div>
-      )}
-      <div className={cn(layout.rounded, "overflow-hidden")}>
-        <div className={cn("px-3 py-1 flex items-center gap-1.5 bg-zinc-800 dark:bg-zinc-900", layout.smallText, "text-zinc-400")}>
-          <Play className="w-3 h-3" />
-          <span>{t("taskOperation.command")}</span>
-        </div>
+      {/* Show full command in expanded view */}
+      <div className={cn("rounded-md overflow-hidden")}>
         <Highlight
           theme={isDarkMode ? themes.vsDark : themes.vsLight}
           code={command}
@@ -90,6 +66,9 @@ export const BashToolRenderer = memo(function BashToolRenderer({ toolId, input }
           )}
         </Highlight>
       </div>
+      {input.run_in_background && (
+        <span className="text-[11px] text-amber-500">Running in background</span>
+      )}
     </ToolUseCard>
   );
 });

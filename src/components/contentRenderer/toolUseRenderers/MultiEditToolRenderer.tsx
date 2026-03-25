@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FileText, Edit } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getVariantStyles, layout } from "@/components/renderers";
@@ -30,10 +30,11 @@ export const MultiEditToolRenderer = memo(function MultiEditToolRenderer({ toolI
 
   return (
     <ToolUseCard
-      title={t("tools.multiEdit")}
-      icon={<Edit className={cn(layout.iconSize, styles.icon)} />}
+      title="MultiEdit"
+      icon={null}
       variant="code"
       toolId={toolId}
+      summary={filePath}
       rightContent={
         <span className={cn("px-1.5 py-0.5", layout.rounded, styles.badge, styles.badgeText)}>
           {t("taskOperation.editCount", { count: edits.length })}

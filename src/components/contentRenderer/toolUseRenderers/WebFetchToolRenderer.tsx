@@ -1,8 +1,8 @@
 import { memo } from "react";
-import { Globe, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { getVariantStyles, layout } from "@/components/renderers";
+import { layout } from "@/components/renderers";
 import { ToolUseCard } from "./ToolUseCard";
 
 interface WebFetchToolInput {
@@ -17,14 +17,14 @@ interface Props {
 
 export const WebFetchToolRenderer = memo(function WebFetchToolRenderer({ toolId, input }: Props) {
   const { t } = useTranslation();
-  const styles = getVariantStyles("web");
 
   return (
     <ToolUseCard
-      title={t("tools.webFetch")}
-      icon={<Globe className={cn(layout.iconSize, styles.icon)} />}
+      title="WebFetch"
+      icon={null}
       variant="web"
       toolId={toolId}
+      summary={input.url}
     >
         {input.url && (
           <div className={cn("p-2 border bg-card border-border", layout.rounded, "mb-2")}>

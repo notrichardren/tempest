@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getVariantStyles, layout } from "@/components/renderers";
@@ -20,12 +19,17 @@ export const TaskOutputToolRenderer = memo(function TaskOutputToolRenderer({ too
   const { t } = useTranslation();
   const styles = getVariantStyles("task");
 
+  const summary = input.task_id
+    ? `task #${input.task_id}${input.block ? ", blocking" : ""}`
+    : undefined;
+
   return (
     <ToolUseCard
-      title={t("taskOperation.taskOutput")}
-      icon={<Download className={cn(layout.iconSize, styles.icon)} />}
+      title="TaskOutput"
+      icon={null}
       variant="task"
       toolId={toolId}
+      summary={summary}
       rightContent={
         input.task_id ? (
           <span className={cn("px-1.5 py-0.5 font-mono", layout.rounded, styles.badge, styles.badgeText)}>

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FileCode2, PencilLine } from "lucide-react";
+import { PencilLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Highlight, themes } from "prism-react-renderer";
 import { cn } from "@/lib/utils";
@@ -27,12 +27,16 @@ export const ApplyPatchToolRenderer = memo(function ApplyPatchToolRenderer({
   const patch = input.patch ?? "";
   const lineCount = patch ? patch.split("\n").length : 0;
 
+  // Extract the first file path from the patch (e.g., "--- a/path/to/file")
+  const firstFilePath = patch.match(/^---\s+a\/(.+)$/m)?.[1];
+
   return (
     <ToolUseCard
-      title={t("tools.fileEdit")}
-      icon={<FileCode2 className={cn(layout.iconSize, styles.icon)} />}
+      title="ApplyPatch"
+      icon={null}
       variant="code"
       toolId={toolId}
+      summary={firstFilePath}
       rightContent={
         <span className={cn("px-1.5 py-0.5", layout.rounded, styles.badge, styles.badgeText)}>
           {lineCount} {t("toolResult.lines")}

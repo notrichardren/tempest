@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ListTodo, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getVariantStyles, layout } from "@/components/renderers";
@@ -39,10 +39,11 @@ export const TodoWriteToolRenderer = memo(function TodoWriteToolRenderer({ toolI
 
   return (
     <ToolUseCard
-      title={t("tools.todoWrite")}
-      icon={<ListTodo className={cn(layout.iconSize, styles.icon)} />}
+      title="TodoWrite"
+      icon={null}
       variant="task"
       toolId={toolId}
+      summary={`${todos.length} todos`}
       rightContent={
         <span className={cn("px-1.5 py-0.5", layout.rounded, styles.badge, styles.badgeText)}>
           {t("taskOperation.itemCount", { count: todos.length })}

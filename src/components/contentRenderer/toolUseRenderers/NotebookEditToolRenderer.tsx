@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FileText, BookOpen } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Highlight, themes } from "prism-react-renderer";
 import { cn } from "@/lib/utils";
@@ -30,10 +30,11 @@ export const NotebookEditToolRenderer = memo(function NotebookEditToolRenderer({
 
   return (
     <ToolUseCard
-      title={t("tools.notebookEdit")}
-      icon={<BookOpen className={cn(layout.iconSize, styles.icon)} />}
+      title="NotebookEdit"
+      icon={null}
       variant="code"
       toolId={toolId}
+      summary={input.notebook_path}
       rightContent={
         <>
           {input.edit_mode && (
