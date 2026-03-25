@@ -21,7 +21,7 @@ export interface MessageFilter {
 
 const DEFAULT_MESSAGE_FILTER: MessageFilter = {
     roles: { user: true, assistant: true },
-    contentTypes: { text: true, thinking: true, toolCalls: true, commands: true },
+    contentTypes: { text: true, thinking: false, toolCalls: false, commands: true },
 };
 
 export interface FilterSliceState {

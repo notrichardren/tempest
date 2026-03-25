@@ -1,11 +1,9 @@
 import React, { useMemo, Children, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, ChevronDown } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { ChevronDown } from "lucide-react";
 import { CommandRenderer, ImageRenderer, TaskNotificationRenderer, hasTaskNotification } from "../contentRenderer";
 import { isImageUrl, isBase64Image } from "../../utils/messageUtils";
-import { TooltipButton } from "../../shared/TooltipButton";
 import { HighlightedText } from "../common";
 import { layout } from "@/components/renderers";
 import { cn } from "@/lib/utils";
@@ -123,8 +121,7 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
   isCurrentMatch = false,
   currentMatchIndex = 0,
 }) => {
-  const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useCaptureExpandState("content", false);
+  const [isExpanded] = useCaptureExpandState("content", false);
 
   // Check if content needs expand (for both user and assistant)
   const textInfo = useMemo(() => {
@@ -200,56 +197,19 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
     const displayContent = showPreview ? textInfo.preview : content;
 
     return (
-      <div className="mb-3 flex justify-end">
-        <div className="max-w-[85%] md:max-w-md lg:max-w-lg bg-accent text-accent-foreground rounded-2xl px-4 py-3 relative group shadow-sm">
-          <div className={cn(
-            "whitespace-pre-wrap break-words",
-            layout.bodyText
-          )}>
-            <span className="text-amber-400 font-bold mr-1.5 select-none" aria-hidden="true">{"\u276F"}</span>
-            {searchQuery ? (
-              <HighlightedText
-                text={content}
-                searchQuery={searchQuery}
-                isCurrentMatch={isCurrentMatch}
-                currentMatchIndex={currentMatchIndex}
-              />
-            ) : (
-              displayContent
-            )}
-          </div>
-
-          {/* Show more / Show less button */}
-          {textInfo.needsExpand && !searchQuery && (
-            <button
-              onClick={() => setIsExpanded(prev => !prev)}
-              className={cn(
-                "flex items-center gap-1 mt-1.5 text-2xs",
-                "text-accent-foreground/70 hover:text-accent-foreground",
-                "transition-colors"
-              )}
-            >
-              <ChevronDown className={cn(
-                "w-3 h-3 transition-transform",
-                isExpanded && "rotate-180"
-              )} />
-              <span>
-                {isExpanded
-                  ? t("messageContentDisplay.showLess", { defaultValue: "Show less" })
-                  : t("messageContentDisplay.showMore", { defaultValue: "Show more..." })}
-              </span>
-            </button>
+      <div className="mb-3 relative group">
+        <div className={cn("whitespace-pre-wrap break-words", layout.bodyText)}>
+          <span className="text-amber-400 font-bold mr-1.5 select-none" aria-hidden="true">&#x276F;</span>
+          {searchQuery ? (
+            <HighlightedText
+              text={content}
+              searchQuery={searchQuery}
+              isCurrentMatch={isCurrentMatch}
+              currentMatchIndex={currentMatchIndex}
+            />
+          ) : (
+            displayContent
           )}
-
-          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <TooltipButton
-              onClick={() => navigator.clipboard.writeText(content)}
-              className="p-1 rounded-full transition-colors bg-accent/80 hover:bg-accent/60 text-accent-foreground"
-              content={t("messageContentDisplay.copyMessage")}
-            >
-              <Copy className={layout.iconSizeSmall} />
-            </TooltipButton>
-          </div>
         </div>
       </div>
     );
@@ -258,9 +218,9 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
     const displayContent = showPreview ? textInfo.preview : content;
 
     return (
-      <div className="mb-3 flex justify-start">
-        <div className="max-w-[95%] md:max-w-2xl bg-secondary text-secondary-foreground rounded-2xl px-4 py-3 relative group shadow-sm border border-border">
-          <span className="text-indigo-400 font-bold mr-1.5 select-none float-left mt-0.5" aria-hidden="true">{"\u23FA"}</span>
+      <div className="mb-3 relative group">
+        <div className="max-w-none">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-400/70 mr-2 select-none align-middle" aria-hidden="true" />
           {/* 검색 중일 때는 plain text로 렌더링 (성능 + 하이라이팅) */}
           {searchQuery ? (
             <div className={`whitespace-pre-wrap break-words ${layout.bodyText}`}>
@@ -292,37 +252,6 @@ export const MessageContentDisplay: React.FC<MessageContentDisplayProps> = ({
             </div>
           )}
 
-          {/* Show more / Show less button */}
-          {textInfo.needsExpand && !searchQuery && (
-            <button
-              onClick={() => setIsExpanded(prev => !prev)}
-              className={cn(
-                "flex items-center gap-1 mt-2 text-2xs",
-                "text-muted-foreground hover:text-foreground",
-                "transition-colors"
-              )}
-            >
-              <ChevronDown className={cn(
-                "w-3 h-3 transition-transform",
-                isExpanded && "rotate-180"
-              )} />
-              <span>
-                {isExpanded
-                  ? t("messageContentDisplay.showLess", { defaultValue: "Show less" })
-                  : t("messageContentDisplay.showMore", { defaultValue: "Show more..." })}
-              </span>
-            </button>
-          )}
-
-          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <TooltipButton
-              onClick={() => navigator.clipboard.writeText(content)}
-              className="p-1 rounded-full transition-colors bg-muted hover:bg-muted/80 text-muted-foreground"
-              content={t("messageContentDisplay.copyMessage")}
-            >
-              <Copy className={layout.iconSizeSmall} />
-            </TooltipButton>
-          </div>
         </div>
       </div>
     );

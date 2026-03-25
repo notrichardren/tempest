@@ -25,10 +25,9 @@ import { AnsiText } from "../common/AnsiText";
 
 function ResultWrapper({ children, isError }: { children: React.ReactNode; isError?: boolean }) {
   return (
-    <div className="mt-0.5 ml-[11px]">
-      <div className="flex items-start gap-1 text-[13px]">
-        <span className={cn("shrink-0 font-mono", isError ? "text-destructive" : "text-muted-foreground")}>⎿</span>
-        <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
+    <div className="mt-0.5 ml-[14px] pl-3 border-l border-border/40 text-[13px]">
+      <div className={cn("min-w-0 overflow-hidden", isError && "text-destructive")}>
+        {children}
       </div>
     </div>
   );
